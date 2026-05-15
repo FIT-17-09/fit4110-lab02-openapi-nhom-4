@@ -1,38 +1,45 @@
 openapi: 3.1.0
 info:
-  title: Smart Campus — Lab 02 Contract Template
+  title: Smart Campus - Core Business API (Nhom 4)
   version: 1.0.0
   description: |
-    Hợp đồng API mẫu cho Lab 02.
-    Sinh viên cần sửa lại title, description, path, schema và example theo cặp đàm phán thực tế.
+    Hop dong API cho Cap 2 (Core <-> AI Vision) va Cap 3 (Core <-> Access Gate).
+    Consumer: Core Business (A6).
+    Provider: AI Vision (A4) va Access Gate (A3).
   contact:
-    name: FIT4110 Teaching Team
+    name: Nhom 4 - FIT4110
     email: fit4110@example.edu.vn
+
 servers:
   - url: http://localhost:4010
     description: Prism mock server
   - url: https://api.campus.local
     description: Class network placeholder
+
 tags:
   - name: health
-    description: Kiểm tra trạng thái service
-  - name: alerts
-    description: Quản lý cảnh báo Smart Campus
-  - name: events
-    description: Quản lý sự kiện nghiệp vụ
+    description: Kiem tra trang thai service
+  - name: ai-vision
+    description: Ket qua phan tich anh tu AI Vision (Cap 2)
+  - name: access-gate
+    description: Log quet the va trang thai cong (Cap 3)
+
 security:
   - bearerAuth: []
+
 paths:
+
+  # ─── HEALTH ────────────────────────────────────────────────
   /health:
     get:
       operationId: getHealth
-      summary: Kiểm tra trạng thái service
-      description: Endpoint kiểm tra service còn hoạt động.
+      summary: Kiem tra trang thai service
+      description: Endpoint kiem tra service con hoat dong hay khong.
       tags: [health]
       security: []
       responses:
         '200':
-          description: Service đang hoạt động
+          description: Service dang hoat dong
           content:
             application/json:
               schema:
@@ -41,136 +48,70 @@ paths:
                 ok:
                   value:
                     status: ok
-                    service: lab02-contract-template
+                    service: core-business
                     time: '2026-05-10T08:00:00Z'
 
-  /alerts:
-    post:
-      operationId: createAlert
-      summary: Tạo cảnh báo mới
-      description: |
-        Endpoint mẫu để Provider nhận yêu cầu tạo cảnh báo từ Consumer.
-        Sinh viên cần sửa theo cặp đàm phán thực tế.
-      tags: [alerts]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateAlertRequest'
-            examples:
-              unauthorizedAccess:
-                value:
-                  sourceService: core-business
-                  alertType: UNAUTHORIZED_ACCESS
-                  severity: HIGH
-                  message: Phát hiện truy cập trái phép tại cổng chính
-                  relatedEventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-      responses:
-        '201':
-          description: Cảnh báo đã được tạo
-          headers:
-            Location:
-              description: URI của alert vừa tạo.
-              schema:
-                type: string
-                format: uri
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Alert'
-              examples:
-                created:
-                  value:
-                    id: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-                    sourceService: core-business
-                    alertType: UNAUTHORIZED_ACCESS
-                    severity: HIGH
-                    message: Phát hiện truy cập trái phép tại cổng chính
-                    relatedEventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-                    status: OPEN
-                    createdAt: '2026-05-10T08:00:00Z'
-                    resolvedAt: null
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+  # ─── CAP 2: AI VISION ──────────────────────────────────────
+  /analyses:
     get:
-      operationId: listAlerts
-      summary: Lấy danh sách cảnh báo
-      description: Lấy danh sách cảnh báo với cursor-based pagination.
-      tags: [alerts]
+      operationId: listAnalyses
+      summary: Lay danh sach ket qua phan tich anh
+      description: Core goi AI Vision de lay danh sach ket qua phan tich anh/detect.
+      tags: [ai-vision]
       parameters:
-        - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
-      responses:
-        '200':
-          description: Danh sách cảnh báo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertPage'
-              examples:
-                firstPage:
-                  value:
-                    items:
-                      - id: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-                        sourceService: core-business
-                        alertType: UNAUTHORIZED_ACCESS
-                        severity: HIGH
-                        message: Phát hiện truy cập trái phép tại cổng chính
-                        relatedEventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-                        status: OPEN
-                        createdAt: '2026-05-10T08:00:00Z'
-                        resolvedAt: null
-                    nextCursor: null
-                    hasMore: false
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
-  /alerts/recent:
-    get:
-      operationId: getRecentAlerts
-      summary: Lấy các cảnh báo gần đây
-      description: Endpoint mẫu cho cặp Analytics ↔ Core Business hoặc Frontend ↔ Core Business.
-      tags: [alerts]
-      parameters:
-        - name: limit
+        - name: cameraId
           in: query
           required: false
-          description: Số cảnh báo tối đa cần lấy.
+          description: Loc theo camera
           schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
+            type: [string, 'null']
+        - name: minConfidence
+          in: query
+          required: false
+          description: Nguong confidence toi thieu (0.0 - 1.0)
+          schema:
+            type: [number, 'null']
+            minimum: 0
+            maximum: 1
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
       responses:
         '200':
-          description: Danh sách cảnh báo gần đây
+          description: Danh sach ket qua phan tich
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: false
-                required: [items]
+                required: [items, total]
                 properties:
                   items:
                     type: array
-                    minItems: 0
-                    maxItems: 100
                     items:
-                      $ref: '#/components/schemas/Alert'
+                      $ref: '#/components/schemas/AnalysisResult'
+                  total:
+                    type: integer
               examples:
-                recentAlerts:
+                withDetection:
                   value:
-                    items: []
+                    items:
+                      - analysisId: "a001"
+                        cameraId: "cam-01"
+                        timestamp: "2026-05-10T08:00:00Z"
+                        frameUrl: "https://storage.campus.local/frames/a001.jpg"
+                        frameExpiredAt: "2026-05-11T08:00:00Z"
+                        result:
+                          detectionType: person
+                          confidence: 0.95
+                          boundingBox:
+                            x: 100
+                            y: 150
+                            width: 80
+                            height: 200
+                          faceId: null
+                    total: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -178,21 +119,42 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /alerts/{alertId}:
+  /analyses/{analysisId}:
     get:
-      operationId: getAlertById
-      summary: Lấy chi tiết một cảnh báo
-      description: Lấy chi tiết alert theo UUID.
-      tags: [alerts]
+      operationId: getAnalysisById
+      summary: Lay chi tiet mot ket qua phan tich
+      description: Lay chi tiet ket qua phan tich anh theo analysisId.
+      tags: [ai-vision]
       parameters:
-        - $ref: '#/components/parameters/AlertId'
+        - name: analysisId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
-          description: Chi tiết cảnh báo
+          description: Chi tiet ket qua phan tich
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Alert'
+                $ref: '#/components/schemas/AnalysisResult'
+              examples:
+                person:
+                  value:
+                    analysisId: "a001"
+                    cameraId: "cam-01"
+                    timestamp: "2026-05-10T08:00:00Z"
+                    frameUrl: null
+                    frameExpiredAt: "2026-05-10T09:00:00Z"
+                    result:
+                      detectionType: person
+                      confidence: 0.91
+                      boundingBox:
+                        x: 50
+                        y: 60
+                        width: 90
+                        height: 180
+                      faceId: "face-xyz"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -200,71 +162,197 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /events:
-    post:
-      operationId: createCampusEvent
-      summary: Gửi sự kiện nghiệp vụ vào hệ thống
-      description: |
-        Endpoint minh họa polymorphism. Event có thể là SensorEvent hoặc AccessEvent.
-      tags: [events]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CampusEvent'
-            examples:
-              sensorEvent:
-                value:
-                  eventType: SENSOR_READING
-                  eventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-                  deviceId: SENSOR-001
-                  metric: temperature
-                  value: 38.5
-                  unit: celsius
-                  timestamp: '2026-05-10T08:00:00Z'
-              accessEvent:
-                value:
-                  eventType: ACCESS_CHECK
-                  eventId: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babd
-                  gateId: GATE-01
-                  cardId: RFID-2026-001
-                  decision: ALLOW
-                  timestamp: '2026-05-10T08:01:00Z'
+  /detections/latest:
+    get:
+      operationId: getLatestDetections
+      summary: Lay detect moi nhat theo loai doi tuong
+      description: Core polling endpoint nay moi 5 giay de nhan detect moi nhat.
+      tags: [ai-vision]
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [person, vehicle, unknown]
+        - name: minConfidence
+          in: query
+          required: false
+          schema:
+            type: [number, 'null']
+            minimum: 0
+            maximum: 1
       responses:
-        '201':
-          description: Event đã được ghi nhận
+        '200':
+          description: Danh sach detect moi nhat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EventAccepted'
+                type: array
+                items:
+                  $ref: '#/components/schemas/DetectionEvent'
+              examples:
+                vehicleDetected:
+                  value:
+                    - eventId: "e001"
+                      cameraId: "cam-02"
+                      detectedAt: "2026-05-10T08:05:00Z"
+                      detectionType: vehicle
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
-webhooks:
-  alertCreated:
-    post:
-      operationId: onAlertCreated
-      summary: Webhook khi có alert mới
-      description: Provider phát sự kiện khi một cảnh báo mới được tạo.
-      tags: [alerts]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Alert'
+  # ─── CAP 3: ACCESS GATE ────────────────────────────────────
+  /access-logs:
+    get:
+      operationId: listAccessLogs
+      summary: Lay log quet the
+      description: Core lay log quet the tu Access Gate, loc theo gateId va khoang thoi gian.
+      tags: [access-gate]
+      parameters:
+        - name: gateId
+          in: query
+          required: false
+          schema:
+            type: [string, 'null']
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
       responses:
         '200':
-          description: Consumer đã nhận webhook
+          description: Danh sach log quet the
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AccessLog'
+                  total:
+                    type: integer
+              examples:
+                withLogs:
+                  value:
+                    items:
+                      - logId: "log-001"
+                        gateId: "gate-01"
+                        cardId: "a3f2b1c0d9e8f7a6b5c4d3e2f1a0b9c8"
+                        timestamp: "2026-05-10T08:10:00Z"
+                        note: null
+                        result:
+                          accessStatus: granted
+                          userId: "user-123"
+                          role: "student"
+                    total: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /access-logs/{logId}:
+    get:
+      operationId: getAccessLogById
+      summary: Chi tiet mot log quet the
+      description: Lay chi tiet mot ban ghi log quet the theo logId.
+      tags: [access-gate]
+      parameters:
+        - name: logId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Chi tiet log
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessLog'
+              examples:
+                denied:
+                  value:
+                    logId: "log-002"
+                    gateId: "gate-02"
+                    cardId: "b4e3c2d1e0f9a8b7c6d5e4f3a2b1c0d9"
+                    timestamp: "2026-05-10T08:15:00Z"
+                    note: "The bi tu choi lan 3"
+                    result:
+                      accessStatus: denied
+                      reason: not_permitted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /gates/{gateId}/status:
+    get:
+      operationId: getGateStatus
+      summary: Kiem tra trang thai mot cong
+      description: Kiem tra trang thai hien tai cua mot cong ra vao.
+      tags: [access-gate]
+      parameters:
+        - name: gateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trang thai cong
+          headers:
+            Cache-Control:
+              description: Cache toi da 10 giay
+              schema:
+                type: string
+                example: max-age=10
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateStatus'
+              examples:
+                open:
+                  value:
+                    gateId: "gate-01"
+                    state: open
+                    updatedAt: "2026-05-10T08:00:00Z"
+                    errorMessage: null
+                error:
+                  value:
+                    gateId: "gate-02"
+                    state: error
+                    updatedAt: "2026-05-10T07:55:00Z"
+                    errorMessage: "GATE_MECHANICAL_JAM"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -272,35 +360,29 @@ components:
       bearerFormat: JWT
 
   parameters:
-    AlertId:
-      name: alertId
-      in: path
-      required: true
-      description: UUID của cảnh báo.
-      schema:
-        type: string
-        format: uuid
-    Cursor:
-      name: cursor
-      in: query
-      required: false
-      description: Cursor dùng để lấy trang tiếp theo.
-      schema:
-        type: [string, 'null']
-        minLength: 1
-        maxLength: 200
     Limit:
       name: limit
       in: query
       required: false
-      description: Số item tối đa mỗi trang.
+      description: So item toi da moi trang (toi da 200).
       schema:
         type: integer
         minimum: 1
-        maximum: 100
+        maximum: 200
         default: 20
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Vi tri bat dau lay du lieu.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
 
   schemas:
+
+    # ── Health ────────────────────────────────────────────────
     HealthStatus:
       type: object
       additionalProperties: false
@@ -308,205 +390,200 @@ components:
       properties:
         status:
           type: string
-          enum: [ok]
-          description: Trạng thái service.
+          enum: [ok, degraded, down]
           example: ok
         service:
           type: string
           minLength: 2
           maxLength: 80
-          description: Tên service.
-          example: lab02-contract-template
+          example: core-business
         time:
           type: string
           format: date-time
-          description: Thời điểm kiểm tra.
           example: '2026-05-10T08:00:00Z'
 
-    CreateAlertRequest:
+    # ── Cap 2: AI Vision ──────────────────────────────────────
+    AnalysisResult:
       type: object
       additionalProperties: false
-      required: [sourceService, alertType, severity, message]
+      required: [analysisId, cameraId, timestamp, result]
       properties:
-        sourceService:
+        analysisId:
           type: string
-          minLength: 2
-          maxLength: 80
-          pattern: '^[a-z0-9-]+$'
-          description: Service tạo alert.
-          example: core-business
-        alertType:
+        cameraId:
           type: string
-          enum: [UNAUTHORIZED_ACCESS, SENSOR_THRESHOLD_EXCEEDED, UNKNOWN_PERSON, SYSTEM_ERROR]
-          description: Loại cảnh báo.
-          example: UNAUTHORIZED_ACCESS
-        severity:
-          $ref: '#/components/schemas/AlertSeverity'
-        message:
-          type: string
-          minLength: 5
-          maxLength: 500
-          description: Nội dung cảnh báo.
-          example: Phát hiện truy cập trái phép tại cổng chính
-        relatedEventId:
-          type: [string, 'null']
-          format: uuid
-          description: Event liên quan, có thể null nếu chưa có event id.
-          example: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-
-    Alert:
-      allOf:
-        - $ref: '#/components/schemas/CreateAlertRequest'
-        - type: object
-          additionalProperties: false
-          required: [id, status, createdAt, resolvedAt]
-          properties:
-            id:
-              type: string
-              format: uuid
-              description: UUID của alert.
-              example: 0196fb3d-4ad7-7d1e-9f49-5d5148d2babc
-            status:
-              type: string
-              enum: [OPEN, ACKNOWLEDGED, RESOLVED]
-              description: Trạng thái xử lý alert.
-              example: OPEN
-            createdAt:
-              type: string
-              format: date-time
-              description: Thời điểm tạo alert.
-              example: '2026-05-10T08:00:00Z'
-            resolvedAt:
-              type: [string, 'null']
-              format: date-time
-              description: Thời điểm xử lý xong, null nếu chưa xử lý.
-              example: null
-
-    AlertSeverity:
-      type: string
-      enum: [LOW, MEDIUM, HIGH, CRITICAL]
-      description: Mức độ nghiêm trọng của cảnh báo.
-      example: HIGH
-
-    AlertPage:
-      type: object
-      additionalProperties: false
-      required: [items, nextCursor, hasMore]
-      properties:
-        items:
-          type: array
-          minItems: 0
-          maxItems: 100
-          items:
-            $ref: '#/components/schemas/Alert'
-        nextCursor:
-          type: [string, 'null']
-          description: Cursor trang tiếp theo, null nếu hết dữ liệu.
-          example: null
-        hasMore:
-          type: boolean
-          description: Còn dữ liệu ở trang sau hay không.
-          example: false
-
-    CampusEvent:
-      oneOf:
-        - $ref: '#/components/schemas/SensorEvent'
-        - $ref: '#/components/schemas/AccessEvent'
-      discriminator:
-        propertyName: eventType
-        mapping:
-          SENSOR_READING: '#/components/schemas/SensorEvent'
-          ACCESS_CHECK: '#/components/schemas/AccessEvent'
-
-    SensorEvent:
-      type: object
-      additionalProperties: false
-      required: [eventType, eventId, deviceId, metric, value, unit, timestamp]
-      properties:
-        eventType:
-          type: string
-          const: SENSOR_READING
-          description: Loại event.
-          example: SENSOR_READING
-        eventId:
-          type: string
-          format: uuid
-          description: UUID của event.
-        deviceId:
-          type: string
-          pattern: '^SENSOR-[0-9]{3}$'
-          description: Mã thiết bị cảm biến.
-          example: SENSOR-001
-        metric:
-          type: string
-          enum: [temperature, humidity, smoke, motion]
-          description: Loại chỉ số cảm biến.
-          example: temperature
-        value:
-          type: number
-          minimum: -100
-          maximum: 1000
-          description: Giá trị đo được.
-          example: 38.5
-        unit:
-          type: string
-          minLength: 1
-          maxLength: 20
-          description: Đơn vị đo.
-          example: celsius
         timestamp:
           type: string
           format: date-time
-          description: Thời điểm đo.
+        frameUrl:
+          type: [string, 'null']
+          format: uri
+          description: URL anh frame. Null neu da het han luu tru.
+        frameExpiredAt:
+          type: [string, 'null']
+          format: date-time
+          description: Thoi diem frame bi xoa. Null neu chua xoa.
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/PersonDetected'
+            - $ref: '#/components/schemas/VehicleDetected'
+            - $ref: '#/components/schemas/NoDetection'
+          discriminator:
+            propertyName: detectionType
+            mapping:
+              person: '#/components/schemas/PersonDetected'
+              vehicle: '#/components/schemas/VehicleDetected'
+              none: '#/components/schemas/NoDetection'
 
-    AccessEvent:
+    PersonDetected:
       type: object
       additionalProperties: false
-      required: [eventType, eventId, gateId, cardId, decision, timestamp]
+      required: [detectionType, confidence, boundingBox]
       properties:
-        eventType:
+        detectionType:
           type: string
-          const: ACCESS_CHECK
-          description: Loại event.
-          example: ACCESS_CHECK
+          const: person
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        boundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+        faceId:
+          type: [string, 'null']
+          description: ID khuon mat neu nhan dien duoc. Null neu khong nhan dien.
+
+    VehicleDetected:
+      type: object
+      additionalProperties: false
+      required: [detectionType, confidence]
+      properties:
+        detectionType:
+          type: string
+          const: vehicle
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        plateNumber:
+          type: [string, 'null']
+          description: Bien so xe neu doc duoc. Null neu khong ro.
+
+    NoDetection:
+      type: object
+      additionalProperties: false
+      required: [detectionType]
+      properties:
+        detectionType:
+          type: string
+          const: none
+        reason:
+          type: [string, 'null']
+          description: Ly do khong phat hien duoc gi.
+
+    BoundingBox:
+      type: object
+      additionalProperties: false
+      required: [x, y, width, height]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        width:
+          type: number
+        height:
+          type: number
+
+    DetectionEvent:
+      type: object
+      additionalProperties: false
+      required: [eventId, cameraId, detectedAt, detectionType]
+      properties:
         eventId:
           type: string
-          format: uuid
-          description: UUID của event.
+        cameraId:
+          type: string
+        detectedAt:
+          type: string
+          format: date-time
+        detectionType:
+          type: string
+          enum: [person, vehicle, unknown]
+
+    # ── Cap 3: Access Gate ────────────────────────────────────
+    AccessLog:
+      type: object
+      additionalProperties: false
+      required: [logId, gateId, cardId, timestamp, result]
+      properties:
+        logId:
+          type: string
         gateId:
           type: string
-          pattern: '^GATE-[0-9]{2}$'
-          description: Mã cổng.
-          example: GATE-01
         cardId:
           type: string
-          pattern: '^RFID-[0-9]{4}-[0-9]{3}$'
-          description: Mã thẻ RFID.
-          example: RFID-2026-001
-        decision:
-          type: string
-          enum: [ALLOW, DENY]
-          description: Quyết định truy cập.
-          example: ALLOW
+          description: SHA-256 hash cua so the. Khong phai so the goc.
         timestamp:
           type: string
           format: date-time
-          description: Thời điểm kiểm tra.
+        note:
+          type: [string, 'null']
+          description: Ghi chu them. Null neu khong co.
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/AccessGranted'
+            - $ref: '#/components/schemas/AccessDenied'
+          discriminator:
+            propertyName: accessStatus
+            mapping:
+              granted: '#/components/schemas/AccessGranted'
+              denied: '#/components/schemas/AccessDenied'
 
-    EventAccepted:
+    AccessGranted:
       type: object
       additionalProperties: false
-      required: [eventId, acceptedAt]
+      required: [accessStatus, userId]
       properties:
-        eventId:
+        accessStatus:
           type: string
-          format: uuid
-          description: UUID của event được nhận.
-        acceptedAt:
+          const: granted
+        userId:
+          type: string
+        role:
+          type: [string, 'null']
+          description: Vai tro cua nguoi dung. Null neu chua phan loai.
+
+    AccessDenied:
+      type: object
+      additionalProperties: false
+      required: [accessStatus, reason]
+      properties:
+        accessStatus:
+          type: string
+          const: denied
+        reason:
+          type: string
+          enum: [card_not_found, expired, not_permitted, gate_locked]
+
+    GateStatus:
+      type: object
+      additionalProperties: false
+      required: [gateId, state, updatedAt]
+      properties:
+        gateId:
+          type: string
+        state:
+          type: string
+          enum: [open, closed, locked, error]
+        updatedAt:
           type: string
           format: date-time
-          description: Thời điểm hệ thống ghi nhận event.
+        errorMessage:
+          type: [string, 'null']
+          description: Ma loi khi state=error. Null neu binh thuong.
 
+    # ── Problem Details (RFC 7807) ────────────────────────────
     Problem:
       type: object
       additionalProperties: false
@@ -515,30 +592,23 @@ components:
         type:
           type: string
           format: uri
-          description: URI định danh loại lỗi.
-          example: https://campus.local/errors/validation
+          example: 'https://campus.local/errors/validation'
         title:
           type: string
-          minLength: 3
-          maxLength: 120
-          description: Tiêu đề lỗi ngắn gọn.
-          example: Dữ liệu không hợp lệ
+          example: Du lieu khong hop le
         status:
           type: integer
           minimum: 400
           maximum: 599
-          description: HTTP status code.
           example: 400
         detail:
           type: [string, 'null']
           maxLength: 500
-          description: Mô tả chi tiết lỗi.
-          example: Field cardId không đúng định dạng
+          example: Field cardId khong dung dinh dang
         instance:
           type: [string, 'null']
           format: uri
-          description: URI của request gây lỗi.
-          example: /alerts
+          example: 'https://campus.local/access-logs'
         errors:
           type: array
           minItems: 0
@@ -550,82 +620,62 @@ components:
             properties:
               field:
                 type: string
-                minLength: 1
-                maxLength: 80
-                example: cardId
+                example: gateId
               code:
                 type: string
-                minLength: 2
-                maxLength: 80
-                example: PATTERN_MISMATCH
+                example: REQUIRED
               message:
                 type: string
-                minLength: 3
-                maxLength: 200
-                example: cardId phải có dạng RFID-YYYY-NNN
+                example: gateId la bat buoc
 
   responses:
     BadRequest:
-      description: Dữ liệu sai định dạng
+      description: Du lieu sai dinh dang
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
-            type: https://campus.local/errors/validation
-            title: Dữ liệu không hợp lệ
+            type: 'https://campus.local/errors/validation'
+            title: Du lieu khong hop le
             status: 400
-            detail: Payload không đúng JSON Schema
-            instance: /alerts
+            detail: Payload khong dung JSON Schema
+            instance: 'https://campus.local/access-logs'
             errors:
-              - field: alertType
-                code: ENUM_MISMATCH
-                message: alertType không nằm trong danh sách cho phép
+              - field: limit
+                code: MAX_EXCEEDED
+                message: limit toi da la 200
 
     Unauthorized:
-      description: Thiếu hoặc sai thông tin xác thực
+      description: Thieu hoac sai thong tin xac thuc
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
           example:
-            type: https://campus.local/errors/unauthorized
-            title: Chưa xác thực
+            type: 'https://campus.local/errors/unauthorized'
+            title: Chua xac thuc
             status: 401
-            detail: Thiếu Bearer token
-            instance: /alerts/recent
+            detail: Thieu Bearer token
+            instance: 'https://campus.local/analyses'
             errors: []
 
     Forbidden:
-      description: Không có quyền thực hiện thao tác
+      description: Khong co quyen thuc hien thao tac
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
 
     NotFound:
-      description: Resource không tồn tại
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-
-    Conflict:
-      description: Xung đột nghiệp vụ hoặc trùng idempotency key
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
-
-    UnprocessableEntity:
-      description: Payload đúng định dạng nhưng không hợp lệ về nghiệp vụ
+      description: Resource khong ton tai
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
 
     InternalServerError:
-      description: Lỗi không mong muốn phía server
+      description: Loi khong mong muon phia server
       content:
         application/problem+json:
           schema:
